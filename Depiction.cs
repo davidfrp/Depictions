@@ -15,10 +15,10 @@ namespace DepictionsApp
         public double ZoomPercentage { get; private set; }
 
         // TODO: Clamp location by "boxing" it in.
-        public Point Location { get; set; }
+        public Point Location { get; private set; }
 
         // TODO: Clamp size.
-        public Size Size { get; set; }
+        public Size Size { get; private set; }
 
         private CanvasControl _canvas;
         private CanvasBitmap _sourceImage;
@@ -44,10 +44,17 @@ namespace DepictionsApp
 
         public void MoveDrawnImage(Vector2 displacementVector)
         {
-            this.Location = new Point(
+            Point newPoint = new Point(
                     this.Location.X + displacementVector.X,
                     this.Location.Y + displacementVector.Y
                 );
+
+            MoveDrawnImage(newPoint);
+        }
+
+        public void MoveDrawnImage(Point pointOnCanvas)
+        {
+            this.Location = pointOnCanvas;
 
             _canvas.Invalidate();
         }
@@ -56,13 +63,14 @@ namespace DepictionsApp
         {
             this.Location = new Point();
             this.Size = _sourceImage.Size;
+
             _canvas.Invalidate();
         }
 
         public void FillDrawnImageInCanvas(bool allowOverflow, bool useSourceImageAsMaxSize)
         {
-            double widthZoomFactor = _canvas.Width / _sourceImage.Size.Width;
-            double heightZoomFactor = _canvas.Height / _sourceImage.Size.Height;
+            double widthZoomFactor = _canvas.Size.Width / _sourceImage.Size.Width;
+            double heightZoomFactor = _canvas.Size.Height / _sourceImage.Size.Height;
 
             double zoomFactor = widthZoomFactor < heightZoomFactor ? widthZoomFactor : heightZoomFactor;
 
@@ -92,7 +100,7 @@ namespace DepictionsApp
 
         public Point GetCanvasCenterPoint()
         {
-            return new Point(_canvas.Width / 2, _canvas.Height / 2);
+            return new Point(_canvas.Size.Width / 2, _canvas.Size.Height / 2);
         }
 
         public void ZoomDrawnImage(double zoomPercentage)
@@ -102,31 +110,63 @@ namespace DepictionsApp
 
         public void ZoomDrawnImage(double zoomPercentage, Point fixedPoint)
         {
-            // TODO: Attempt to rewrite zoom functionallity.
+            if (zoomPercentage <= 0)
+                return;
 
-            // Place image so the fixed pixel is below the mouse cursor.
-            Point fixedPixel = PointFromCanvasToSourceImage(fixedPoint);
+            bool isZoomingIn = zoomPercentage > this.ZoomPercentage;
 
-            Point newLocation = new Point(
-                    0,
-                    0
+            if ((this.Size.Width < 64 ||
+                this.Size.Height < 64) &&
+                !isZoomingIn)
+                return;
+
+            if (zoomPercentage > 7500 &&
+                isZoomingIn)
+                return;
+
+            double zoomFactor = zoomPercentage / 100;
+
+            this.Size = new Size(
+                    _sourceImage.Size.Width * zoomFactor,
+                    _sourceImage.Size.Height * zoomFactor
                 );
 
-            this.Location = newLocation;
 
 
+            Point fixedPointInDrawnImage = PointRelativeToDrawnImage(fixedPoint);
 
-            Size newSize = new Size(
-                    zoomPercentage / 100 * this.Size.Width,
-                    zoomPercentage / 100 * this.Size.Height
+            double deltaX = fixedPointInDrawnImage.X * (zoomFactor - 1);
+            double deltaY = fixedPointInDrawnImage.Y * (zoomFactor - 1);
+
+            this.Location = new Point(
+                    this.Location.X - deltaX,
+                    this.Location.Y - deltaY
                 );
 
-            this.Size = newSize;
+
+
+
+
+
+
+
+
+            //Point fixedPointInDrawnImage = PointRelativeToDrawnImage(fixedPoint);
+
+            //double deltaX = fixedPointInDrawnImage.X * (zoomFactor - 1);
+            //double deltaY = fixedPointInDrawnImage.Y * (zoomFactor - 1);
+
+            //this.Location = new Point(
+            //        this.Location.X - deltaX,
+            //        this.Location.Y - deltaY
+            //    );
+
+            this.ZoomPercentage = zoomPercentage;
 
             _canvas.Invalidate();
         }
 
-        private Point PointFromCanvasToDrawnImage(Point pointOnCanvas)
+        private Point PointRelativeToDrawnImage(Point pointOnCanvas)
         {
             return new Point(
                     pointOnCanvas.X - this.Location.X,
@@ -134,15 +174,22 @@ namespace DepictionsApp
                 );
         }
 
-        private Point PointFromCanvasToSourceImage(Point pointOnCanvas)
+        private Point PointRelativeToSourceImage(Point pointOnCanvas)
         {
             double widthScaleFactor = this.Size.Width / _sourceImage.Size.Width;
             double heightScaleFactor = this.Size.Height / _sourceImage.Size.Height;
 
-            double imagePositionX = PointFromCanvasToDrawnImage(pointOnCanvas).X / widthScaleFactor;
-            double imagePositionY = PointFromCanvasToDrawnImage(pointOnCanvas).Y / heightScaleFactor;
+            Point pointOnDrawnImage = PointRelativeToDrawnImage(pointOnCanvas);
+
+            double imagePositionX = pointOnDrawnImage.X / widthScaleFactor;
+            double imagePositionY = pointOnDrawnImage.Y / heightScaleFactor;
 
             return new Point(imagePositionX, imagePositionY);
+        }
+
+        public Rect SourceImageVisibleRectangle()
+        {
+            throw new NotImplementedException();
         }
     }
 }

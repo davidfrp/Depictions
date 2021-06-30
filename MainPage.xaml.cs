@@ -64,14 +64,29 @@ namespace DepictionsApp
         {
             if (this.SourceImage != null)
             {
-                args.DrawingSession.DrawImage(this.SourceImage,
-                        new Rect(
-                                _depiction.Location.X,
-                                _depiction.Location.Y,
-                                _depiction.Size.Width,
-                                _depiction.Size.Height
-                            )
-                    );
+                CanvasImageInterpolation interpolationMode = CanvasImageInterpolation.HighQualityCubic;
+
+                if (_isMovingImage)
+                    interpolationMode = CanvasImageInterpolation.Linear;
+
+                if (_depiction.ZoomPercentage > 100)
+                    interpolationMode = CanvasImageInterpolation.NearestNeighbor;
+
+                Rect destinationRectangle = new Rect(
+                    _depiction.Location.X,
+                    _depiction.Location.Y,
+                    _depiction.Size.Width,
+                    _depiction.Size.Height);
+
+                Rect sourceRectangle = new Rect(0, 0,
+                    this.SourceImage.Size.Width,
+                    this.SourceImage.Size.Height);
+
+                args.DrawingSession.DrawImage(
+                    this.SourceImage, 
+                    destinationRectangle, 
+                    sourceRectangle, 1,
+                    interpolationMode);
             }
         }
 
@@ -82,6 +97,8 @@ namespace DepictionsApp
                 this.SourceImage = await CanvasBitmap.LoadAsync(canvas, stream);
 
                 _depiction = new Depiction(canvas, this.SourceImage);
+
+                _depiction.FillDrawnImageInCanvas(false, false);
             }
 
             canvas.Invalidate();
@@ -104,6 +121,8 @@ namespace DepictionsApp
             ((CanvasControl)sender).ReleasePointerCapture(e.Pointer);
 
             _isMovingImage = false;
+
+            canvas.Invalidate();
         }
 
         private void canvas_PointerMoved(object sender, PointerRoutedEventArgs e)
@@ -125,14 +144,25 @@ namespace DepictionsApp
 
             if (isZoomingIn)
             {
-                // Increase zoom by 10%
-                _depiction.ZoomDrawnImage(1.1 * _depiction.ZoomPercentage, currentPointerPoint.Position);
+                // Increase current zoom by 10%
+                _depiction.ZoomDrawnImage(_depiction.ZoomPercentage * 1.1, currentPointerPoint.Position);
             }
             else
             {
-                // Decrease zoom by 10%
-                _depiction.ZoomDrawnImage(0.9 * _depiction.ZoomPercentage, currentPointerPoint.Position);
+                // Decrease current zoom by 10%
+                _depiction.ZoomDrawnImage(_depiction.ZoomPercentage * 0.9, currentPointerPoint.Position);
             }
+        }
+
+        private void canvas_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        {
+            _depiction?.FillDrawnImageInCanvas(false, false);
+        }
+
+        private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // TODO: Improve performance while resizing the window.
+            _depiction?.FillDrawnImageInCanvas(false, false);
         }
     }
 }
