@@ -1,11 +1,7 @@
 ﻿using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Foundation;
 
 namespace DepictionsApp
@@ -35,9 +31,8 @@ namespace DepictionsApp
         public void MoveDrawnImage(Point previousDraggingPoint, Point currentDraggingPoint)
         {
             Vector2 displacementVector = new Vector2(
-                    (float)currentDraggingPoint.X - (float)previousDraggingPoint.X,
-                    (float)currentDraggingPoint.Y - (float)previousDraggingPoint.Y
-                );
+                (float)currentDraggingPoint.X - (float)previousDraggingPoint.X,
+                (float)currentDraggingPoint.Y - (float)previousDraggingPoint.Y);
 
             MoveDrawnImage(displacementVector);
         }
@@ -45,9 +40,8 @@ namespace DepictionsApp
         public void MoveDrawnImage(Vector2 displacementVector)
         {
             Point newPoint = new Point(
-                    this.Location.X + displacementVector.X,
-                    this.Location.Y + displacementVector.Y
-                );
+                this.Location.X + displacementVector.X,
+                this.Location.Y + displacementVector.Y);
 
             MoveDrawnImage(newPoint);
         }
@@ -83,6 +77,7 @@ namespace DepictionsApp
 
             ZoomDrawnImage(zoomFactor * 100);
 
+            // TODO: Remove this line.
             CenterDrawnImage();
         }
 
@@ -91,9 +86,8 @@ namespace DepictionsApp
             Point centerPoint = GetCanvasCenterPoint();
 
             this.Location = new Point(
-                    centerPoint.X - this.Size.Width / 2,
-                    centerPoint.Y - this.Size.Height / 2
-                );
+                centerPoint.X - this.Size.Width / 2,
+                centerPoint.Y - this.Size.Height / 2);
 
             _canvas.Invalidate();
         }
@@ -124,42 +118,28 @@ namespace DepictionsApp
                 isZoomingIn)
                 return;
 
-            double zoomFactor = zoomPercentage / 100;
+            // Get the percentage in- or decrease of the source image, as a factor.
+            double absoluteScalingFactor = zoomPercentage / 100;
 
+            // Scale the drawn image to the size of the source image multiplied with the absolute factor.
             this.Size = new Size(
-                    _sourceImage.Size.Width * zoomFactor,
-                    _sourceImage.Size.Height * zoomFactor
-                );
+                _sourceImage.Size.Width * absoluteScalingFactor,
+                _sourceImage.Size.Height * absoluteScalingFactor);
 
+            // Translate the fixed point to its location on the drawn image.
+            Point fixedPointOnDrawnImage = PointRelativeToDrawnImage(fixedPoint);
 
+            // Get the percentage in- or decrease from the drawn image's current zoom level, as a factor.
+            double relativeScalingFactor = 1 - (this.ZoomPercentage - zoomPercentage) / this.ZoomPercentage;
 
-            Point fixedPointInDrawnImage = PointRelativeToDrawnImage(fixedPoint);
+            // Calculates the difference in pixel distance from the location.
+            double deltaX = fixedPointOnDrawnImage.X * relativeScalingFactor - fixedPointOnDrawnImage.X;
+            double deltaY = fixedPointOnDrawnImage.Y * relativeScalingFactor - fixedPointOnDrawnImage.Y;
 
-            double deltaX = fixedPointInDrawnImage.X * (zoomFactor - 1);
-            double deltaY = fixedPointInDrawnImage.Y * (zoomFactor - 1);
-
+            // Sets the location of the drawn image.
             this.Location = new Point(
-                    this.Location.X - deltaX,
-                    this.Location.Y - deltaY
-                );
-
-
-
-
-
-
-
-
-
-            //Point fixedPointInDrawnImage = PointRelativeToDrawnImage(fixedPoint);
-
-            //double deltaX = fixedPointInDrawnImage.X * (zoomFactor - 1);
-            //double deltaY = fixedPointInDrawnImage.Y * (zoomFactor - 1);
-
-            //this.Location = new Point(
-            //        this.Location.X - deltaX,
-            //        this.Location.Y - deltaY
-            //    );
+                this.Location.X - deltaX,
+                this.Location.Y - deltaY);
 
             this.ZoomPercentage = zoomPercentage;
 
@@ -169,9 +149,8 @@ namespace DepictionsApp
         private Point PointRelativeToDrawnImage(Point pointOnCanvas)
         {
             return new Point(
-                    pointOnCanvas.X - this.Location.X,
-                    pointOnCanvas.Y - this.Location.Y
-                );
+                pointOnCanvas.X - this.Location.X,
+                pointOnCanvas.Y - this.Location.Y);
         }
 
         private Point PointRelativeToSourceImage(Point pointOnCanvas)

@@ -8,17 +8,17 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid>
-        <ComboBox Margin="116,50,0,0" Width="152" BorderThickness="0,0,0,0" SelectedIndex="0">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ComboBox Margin="105,33,0,0" BorderThickness="0,0,0,0" SelectedIndex="0">
             <ComboBoxItem Content="Optagelsesdato"/>
             <ComboBoxItem Content="Senest ændret"/>
             <ComboBoxItem Content="Sti"/>
             <ComboBoxItem Content="Navn"/>
             <ComboBoxItem Content="Størrelse"/>
         </ComboBox>
-        <TextBlock HorizontalAlignment="Left" Margin="22,56,0,0" Text="Sorter efter:" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <TextBlock HorizontalAlignment="Left" Margin="22,39,0,0" Text="Sorter efter:" TextWrapping="Wrap" VerticalAlignment="Top"/>
 
-        <ComboBox Margin="466,51,0,0" Width="152" BorderThickness="0,0,0,0" SelectedIndex="0" Grid.ColumnSpan="2">
+        <ComboBox Margin="384,34,0,0" BorderThickness="0,0,0,0" SelectedIndex="0">
             <ComboBoxItem Content="Gruppér ikke filer"/>
             <ComboBoxItem Content="Senest ændret (daglig)"/>
             <ComboBoxItem Content="Senest ændret (månedlig)"/>
@@ -27,7 +27,7 @@
             <ComboBoxItem Content="Filtype"/>
             <ComboBoxItem Content="Filendelse"/>
         </ComboBox>
-        <TextBlock HorizontalAlignment="Left" Margin="373,57,0,0" Text="Gruppér efter:" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <TextBlock HorizontalAlignment="Left" Margin="291,40,0,0" Text="Gruppér efter:" TextWrapping="Wrap" VerticalAlignment="Top"/>
 
         <canvas:CanvasControl x:Name="canvas" Margin="0,100,0,0" 
                               Draw="canvas_Draw"
@@ -38,6 +38,10 @@
                               DoubleTapped="canvas_DoubleTapped"
                               SizeChanged="canvas_SizeChanged"/>
 
-        <Button Content="Åben billede" Margin="907,49,0,0" VerticalAlignment="Top" Click="Button_Click"/>
+        <Button Content="Åben billede" 
+                Margin="0,34,22,0" 
+                VerticalAlignment="Top" 
+                HorizontalAlignment="Right" 
+                Click="Button_Click"/>
     </Grid>
 </Page>
