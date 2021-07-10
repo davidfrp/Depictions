@@ -1,14 +1,15 @@
 ﻿<Page
-    x:Class="DepictionsApp.MainPage"
+    x:Class="Depictions.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    xmlns:depictions="using:Depictions"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid>
         <ComboBox Margin="105,33,0,0" BorderThickness="0,0,0,0" SelectedIndex="0">
             <ComboBoxItem Content="Optagelsesdato"/>
             <ComboBoxItem Content="Senest ændret"/>
@@ -28,6 +29,8 @@
             <ComboBoxItem Content="Filendelse"/>
         </ComboBox>
         <TextBlock HorizontalAlignment="Left" Margin="291,40,0,0" Text="Gruppér efter:" TextWrapping="Wrap" VerticalAlignment="Top"/>
+
+        <depictions:DepictionControl x:Name="depictionControl" Margin="0,100,0,0"/>
 
         <canvas:CanvasControl x:Name="canvas" Margin="0,100,0,0" 
                               Draw="canvas_Draw"

@@ -3,18 +3,30 @@ using Microsoft.Graphics.Canvas.UI.Xaml;
 using System;
 using System.Numerics;
 using Windows.Foundation;
+using Windows.UI.Xaml.Controls;
 
-namespace DepictionsApp
+namespace Depictions
 {
-    internal class Depiction
+    public class Depiction
     {
         public double ZoomPercentage { get; private set; }
 
+        public double MaxZoomPercentage { get; } = 7500;
+
         // TODO: Clamp location by "boxing" it in.
-        public Point Location { get; private set; }
+        private Point _renderLocation;
+        public Point RenderLocation 
+        { 
+            get => _renderLocation;
+            set
+            {
+                _renderLocation = ClampRenderLocation(value);
+            }
+        }
 
         // TODO: Clamp size.
-        public Size Size { get; private set; }
+        private Size _renderSize;
+        public Size RenderSize { get => _renderSize; }
 
         private CanvasControl _canvas;
         private CanvasBitmap _sourceImage;
@@ -24,70 +36,100 @@ namespace DepictionsApp
             _canvas = canvas;
             _sourceImage = sourceImage;
 
-            this.Size = _sourceImage.Size;
+            _renderSize = _sourceImage.Size;
             this.ZoomPercentage = 100;
         }
 
-        public void MoveDrawnImage(Point previousDraggingPoint, Point currentDraggingPoint)
+
+        public void MoveRenderedImage(Point previousDraggingPoint, Point currentDraggingPoint)
         {
             Vector2 displacementVector = new Vector2(
                 (float)currentDraggingPoint.X - (float)previousDraggingPoint.X,
                 (float)currentDraggingPoint.Y - (float)previousDraggingPoint.Y);
 
-            MoveDrawnImage(displacementVector);
+            MoveRenderedImage(displacementVector);
         }
 
-        public void MoveDrawnImage(Vector2 displacementVector)
+        public void MoveRenderedImage(Vector2 displacementVector)
         {
             Point newPoint = new Point(
-                this.Location.X + displacementVector.X,
-                this.Location.Y + displacementVector.Y);
+                this.RenderLocation.X + displacementVector.X,
+                this.RenderLocation.Y + displacementVector.Y);
 
-            MoveDrawnImage(newPoint);
+            MoveRenderedImage(newPoint);
         }
 
-        public void MoveDrawnImage(Point pointOnCanvas)
+        public void MoveRenderedImage(Point pointOnCanvas)
         {
-            this.Location = pointOnCanvas;
+            this.RenderLocation = pointOnCanvas;
 
             _canvas.Invalidate();
         }
 
-        public void RevertDrawnImage()
+        public void RevertRenderedImage()
         {
-            this.Location = new Point();
-            this.Size = _sourceImage.Size;
+            this.RenderLocation = new Point();
+            _renderSize = _sourceImage.Size;
 
             _canvas.Invalidate();
         }
 
-        public void FillDrawnImageInCanvas(bool allowOverflow, bool useSourceImageAsMaxSize)
+        public void FillRenderedImageInCanvas(bool allowOverflow, bool useSourceImageAsMaxSize)
+        {
+            FillRenderedImageInCanvas(allowOverflow, useSourceImageAsMaxSize, GetCanvasCenterPoint());
+        }
+
+        public void FillRenderedImageInCanvas(bool allowOverflow, bool useSourceImageAsMaxSize, Point fixedPoint)
         {
             double widthZoomFactor = _canvas.Size.Width / _sourceImage.Size.Width;
             double heightZoomFactor = _canvas.Size.Height / _sourceImage.Size.Height;
 
-            double zoomFactor = widthZoomFactor < heightZoomFactor ? widthZoomFactor : heightZoomFactor;
+            bool isPortrait = widthZoomFactor > heightZoomFactor;
+
+            double zoomFactor = isPortrait ? widthZoomFactor : heightZoomFactor;
 
             if (allowOverflow)
-                zoomFactor = widthZoomFactor > heightZoomFactor ? widthZoomFactor : heightZoomFactor;
+                zoomFactor = isPortrait ? heightZoomFactor : widthZoomFactor;
 
             // Ensure image doesn't get scaled beyond its source's size.
             if (useSourceImageAsMaxSize && zoomFactor > 1)
                 zoomFactor = 1;
 
-            ZoomDrawnImage(zoomFactor * 100);
+            ZoomRenderedImage(zoomFactor * 100, fixedPoint);
 
-            // TODO: Remove this line.
-            CenterDrawnImage();
+            Point desiredRenderLocation = _renderLocation;
+
+            CenterRenderedImage();
+
+            if (isPortrait)
+            {
+                _renderLocation.Y = desiredRenderLocation.Y;
+
+                if (desiredRenderLocation.Y > 0)
+                    _renderLocation.Y = 0;
+
+                if (desiredRenderLocation.Y < _canvas.Size.Height - _renderSize.Height)
+                    _renderLocation.Y = _canvas.Size.Height - _renderSize.Height;
+            }
+            else
+            {
+                _renderLocation.X = desiredRenderLocation.X;
+
+                if (desiredRenderLocation.X > 0)
+                    _renderLocation.X = 0;
+
+                if (desiredRenderLocation.X < _canvas.Size.Width - _renderSize.Width)
+                    _renderLocation.X = _canvas.Size.Width - _renderSize.Width;
+            }
         }
 
-        public void CenterDrawnImage()
+        public void CenterRenderedImage()
         {
             Point centerPoint = GetCanvasCenterPoint();
 
-            this.Location = new Point(
-                centerPoint.X - this.Size.Width / 2,
-                centerPoint.Y - this.Size.Height / 2);
+            this.RenderLocation = new Point(
+                centerPoint.X - this.RenderSize.Width / 2,
+                centerPoint.Y - this.RenderSize.Height / 2);
 
             _canvas.Invalidate();
         }
@@ -97,24 +139,24 @@ namespace DepictionsApp
             return new Point(_canvas.Size.Width / 2, _canvas.Size.Height / 2);
         }
 
-        public void ZoomDrawnImage(double zoomPercentage)
+        public void ZoomRenderedImage(double zoomPercentage)
         {
-            ZoomDrawnImage(zoomPercentage, GetCanvasCenterPoint());
+            ZoomRenderedImage(zoomPercentage, GetCanvasCenterPoint());
         }
 
-        public void ZoomDrawnImage(double zoomPercentage, Point fixedPoint)
+        public void ZoomRenderedImage(double zoomPercentage, Point fixedPoint)
         {
             if (zoomPercentage <= 0)
                 return;
 
             bool isZoomingIn = zoomPercentage > this.ZoomPercentage;
 
-            if ((this.Size.Width < 64 ||
-                this.Size.Height < 64) &&
+            if ((this.RenderSize.Width <= 64 ||
+                this.RenderSize.Height <= 64) &&
                 !isZoomingIn)
                 return;
 
-            if (zoomPercentage > 7500 &&
+            if (zoomPercentage >= this.MaxZoomPercentage &&
                 isZoomingIn)
                 return;
 
@@ -122,46 +164,46 @@ namespace DepictionsApp
             double absoluteScalingFactor = zoomPercentage / 100;
 
             // Scale the drawn image to the size of the source image multiplied with the absolute factor.
-            this.Size = new Size(
+            _renderSize = new Size(
                 _sourceImage.Size.Width * absoluteScalingFactor,
                 _sourceImage.Size.Height * absoluteScalingFactor);
 
             // Translate the fixed point to its location on the drawn image.
-            Point fixedPointOnDrawnImage = PointRelativeToDrawnImage(fixedPoint);
+            Point fixedPointOnRenderedImage = PointRelativeToRenderedImage(fixedPoint);
 
             // Get the percentage in- or decrease from the drawn image's current zoom level, as a factor.
             double relativeScalingFactor = 1 - (this.ZoomPercentage - zoomPercentage) / this.ZoomPercentage;
 
             // Calculates the difference in pixel distance from the location.
-            double deltaX = fixedPointOnDrawnImage.X * relativeScalingFactor - fixedPointOnDrawnImage.X;
-            double deltaY = fixedPointOnDrawnImage.Y * relativeScalingFactor - fixedPointOnDrawnImage.Y;
+            double deltaX = fixedPointOnRenderedImage.X * relativeScalingFactor - fixedPointOnRenderedImage.X;
+            double deltaY = fixedPointOnRenderedImage.Y * relativeScalingFactor - fixedPointOnRenderedImage.Y;
 
             // Sets the location of the drawn image.
-            this.Location = new Point(
-                this.Location.X - deltaX,
-                this.Location.Y - deltaY);
+            this.RenderLocation = new Point(
+                this.RenderLocation.X - deltaX,
+                this.RenderLocation.Y - deltaY);
 
             this.ZoomPercentage = zoomPercentage;
 
             _canvas.Invalidate();
         }
 
-        private Point PointRelativeToDrawnImage(Point pointOnCanvas)
+        private Point PointRelativeToRenderedImage(Point pointOnCanvas)
         {
             return new Point(
-                pointOnCanvas.X - this.Location.X,
-                pointOnCanvas.Y - this.Location.Y);
+                pointOnCanvas.X - this.RenderLocation.X,
+                pointOnCanvas.Y - this.RenderLocation.Y);
         }
 
         private Point PointRelativeToSourceImage(Point pointOnCanvas)
         {
-            double widthScaleFactor = this.Size.Width / _sourceImage.Size.Width;
-            double heightScaleFactor = this.Size.Height / _sourceImage.Size.Height;
+            double widthScaleFactor = this.RenderSize.Width / _sourceImage.Size.Width;
+            double heightScaleFactor = this.RenderSize.Height / _sourceImage.Size.Height;
 
-            Point pointOnDrawnImage = PointRelativeToDrawnImage(pointOnCanvas);
+            Point pointOnRenderedImage = PointRelativeToRenderedImage(pointOnCanvas);
 
-            double imagePositionX = pointOnDrawnImage.X / widthScaleFactor;
-            double imagePositionY = pointOnDrawnImage.Y / heightScaleFactor;
+            double imagePositionX = pointOnRenderedImage.X / widthScaleFactor;
+            double imagePositionY = pointOnRenderedImage.Y / heightScaleFactor;
 
             return new Point(imagePositionX, imagePositionY);
         }
@@ -169,6 +211,73 @@ namespace DepictionsApp
         public Rect SourceImageVisibleRectangle()
         {
             throw new NotImplementedException();
+        }
+
+        public Point ClampRenderLocation(Point desiredLocation)
+        {
+            // Check whether the image is wider than the control.
+            if (this.RenderSize.Width >= _canvas.Size.Width)
+            {
+                // Check whether the image's position is beyond the center of the control.
+                if (desiredLocation.X > _canvas.Size.Width / 2)
+                {
+                    // Constrain the image's position to its positive value.
+                    desiredLocation.X = _canvas.Size.Width / 2;
+                }
+                else if (desiredLocation.X < -(this.RenderSize.Width - _canvas.Size.Width / 2))
+                {
+                    // Constrain the image's position to its negative value.
+                    desiredLocation.X = -(this.RenderSize.Width - _canvas.Size.Width / 2);
+                }
+            }
+            else
+            {
+                // Check whether the image's center is beyond the right side.
+                if (desiredLocation.X + this.RenderSize.Width / 2 > _canvas.Size.Width)
+                {
+                    // Constrain the image's X-position to prevent going beyond the center of the image.
+                    desiredLocation.X = _canvas.Size.Width - this.RenderSize.Width / 2;
+                }
+                // Check whether the image's center is beyond the left side.
+                else if (desiredLocation.X < -(this.RenderSize.Width / 2))
+                {
+                    // Constrain the image's X-position to prevent going beyond the center of the image.
+                    desiredLocation.X = -(this.RenderSize.Width / 2);
+                }
+            }
+
+            // Check whether the image is higher than the control.
+            if (this.RenderSize.Height >= _canvas.Size.Height)
+            {
+                // Check whether the image's position is beyond the center of the control.
+                if (desiredLocation.Y > _canvas.Size.Height / 2)
+                {
+                    // Constrain the image's position to its positive value.
+                    desiredLocation.Y = _canvas.Size.Height / 2;
+                }
+                else if (desiredLocation.Y < -(this.RenderSize.Height - _canvas.Size.Height / 2))
+                {
+                    // Constrain the image's position to its negative value.
+                    desiredLocation.Y = -(this.RenderSize.Height - _canvas.Size.Height / 2);
+                }
+            }
+            else
+            {
+                // Check whether the image's center is beyond the top.
+                if (desiredLocation.Y + this.RenderSize.Height / 2 > _canvas.Size.Height)
+                {
+                    // Constrain the image's Y-position to prevent going beyond the center of the image.
+                    desiredLocation.Y = _canvas.Size.Height - this.RenderSize.Height / 2;
+                }
+                // Check whether the image's center is beyond the bottom.
+                else if (desiredLocation.Y < -(this.RenderSize.Height / 2))
+                {
+                    // Constrain the image's Y-position to prevent going beyond the center of the image.
+                    desiredLocation.Y = -(this.RenderSize.Height / 2);
+                }
+            }
+
+            return desiredLocation;
         }
     }
 }
