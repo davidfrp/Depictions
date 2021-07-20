@@ -1,0 +1,2 @@
+C:\Users\david\Documents\Visual Studio 2019\Projects\Depictions\Depictions\Depictions.csproj;x64
+C:\Users\david\Documents\Visual Studio 2019\Projects\Depictions\DepictionsApp\DepictionsApp.csproj;x64

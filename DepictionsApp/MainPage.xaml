@@ -1,0 +1,25 @@
+﻿<Page
+    x:Class="DepictionsApp.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DepictionsApp"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:depictions="using:Depictions"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Loaded="OnLoaded">
+
+    <Grid>
+        <depictions:DepictionViewer x:Name="depictionViewer"
+                                Margin="0,0,0,0"
+                                AllowDoubleTapZoom="True"
+                                AllowMouseWheelZoom="True"
+                                AllowPanning="True"/>
+        <Button Content="Button"
+                Margin="10,10,0,0"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Left"
+                Click="Button_Click"/>
+    </Grid>
+</Page>
